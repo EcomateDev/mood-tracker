@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+
+        #container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+        }
+
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mood-entry {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mood-entry select, .mood-entry button {
+            flex: 1;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .delete-button:hover {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        #theme-toggle {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #theme-toggle label {
+            font-weight: normal;
+        }
+
+        body.theme-dark {
+            color: #fff;
+            background-color: #333;
+        }
+
+        body.theme-dark #container {
+            background-color: #444;
+            border-color: #222;
+        }
+
+        body.theme-dark #mood-list li {
+            background-color: #555;
+            color: #fff;
+        }
+
+        body.theme-dark #mood-list li .delete-button {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Mood Tracker</h1>
+        <div id="theme-toggle">
+            <label for="theme-select">Theme:</label>
+            <select id="theme-select">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+        <label for="mood-select">Select mood:</label>
+        <select id="mood-select">
+            <option value="Happy">Happy</option>
+            <option value="Sad">Sad</option>
+            <option value="Surprised">Surprised</option>
+            <option value="Angry">Angry</option>
+            <option value="Confused">Confused</option>
+        </select>
+        <label for="emoji-select">Select emoji:</label>
+        <select id="emoji-select">
+            <option value="😃">😃</option>
+            <option value="😢">😢</option>
+            <option value="😳">😳</option>
+            <option value="😠">😠</option>
+            <option value="😕">😕</option>
+        </select>
+        <label for="comment">Your comment:</label>
+        <input type="text" id="comment" placeholder="Add a comment">
+        <button id="add-mood">Add Mood</button>
+        <ul id="mood-list"></ul>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const moodSelect = document.getElementById("mood-select");
+            const emojiSelect = document.getElementById("emoji-select");
+            const commentInput = document.getElementById("comment");
+            const addMoodButton = document.getElementById("add-mood");
+            const moodList = document.getElementById("mood-list");
+            const themeSelect = document.getElementById("theme-select");
+
+            // Function to set theme
+            function setTheme(theme) {
+                const body = document.body;
+                if (theme === "dark") {
+                    body.classList.add("theme-dark");
+                } else {
+                    body.classList.remove("theme-dark");
+                }
+            }
+
+            // Check for saved theme in cookies
+            const savedTheme = getCookie("theme");
+            if (savedTheme) {
+                themeSelect.value = savedTheme;
+                setTheme(savedTheme);
+            }
+
+            themeSelect.addEventListener("change", function () {
+                const selectedTheme = themeSelect.value;
+                setCookie("theme", selectedTheme);
+                setTheme(selectedTheme);
+            });
+
+            // On page load, retrieve and display saved moods
+            const savedMoods = getSavedMoods();
+
+            if (savedMoods) {
+                savedMoods.forEach(function (moodData, index) {
+                    const listItem = createMoodListItem(moodData, index);
+                    moodList.appendChild(listItem);
+                });
+            }
+
+            addMoodButton.addEventListener("click", function () {
+                const selectedMood = moodSelect.value;
+                const selectedEmoji = emojiSelect.value;
+                const comment = commentInput.value;
+
+                const moodData = {
+                    date: getCurrentDatetime(),
+                    mood: selectedMood,
+                    emoji: selectedEmoji,
+                    comment: comment,
+                };
+
+                savedMoods.push(moodData);
+
+                const listItem = createMoodListItem(moodData, savedMoods.length - 1);
+                moodList.appendChild(listItem);
+
+                setCookie("moods", JSON.stringify(savedMoods));
+
+                // Clear input fields
+                moodSelect.value = "Happy";
+                emojiSelect.value = "😃";
+                commentInput.value = "";
+            });
+
+            moodList.addEventListener("click", function (event) {
+                if (event.target.classList.contains("delete-button")) {
+                    const itemIndex = event.target.getAttribute("data-index");
+                    if (itemIndex !== null) {
+                        savedMoods.splice(itemIndex, 1);
+                        setCookie("moods", JSON.stringify(savedMoods));
+                        moodList.removeChild(event.target.parentElement);
+                    }
+                }
+            });
+
+            // Create a list item to display a mood entry
+            function createMoodListItem(moodData, index) {
+                const listItem = document.createElement("li");
+                listItem.classList.add("mood-entry");
+
+                listItem.innerHTML = `
+                    <span>${moodData.date}</span>
+                    <span>${moodData.mood}</span>
+                    <span>${moodData.emoji}</span>
+                    <span>${moodData.comment}</span>
+                    <button class="delete-button" data-index="${index}">Delete</button>
+                `;
+
+                return listItem;
+            }
+
+            // Function to get saved moods from cookies
+            function getSavedMoods() {
+                const savedMoods = getCookie("moods");
+                return savedMoods ? JSON.parse(savedMoods) : [];
+            }
+
+            // Function to set cookie
+            function setCookie(name, value) {
+                document.cookie = `${name}=${value}; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
+            }
+
+            // Function to get cookie value
+            function getCookie(name) {
+                const cookieName = `${name}=`;
+                const cookies = document.cookie.split(";");
+
+                for (let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i].trim();
+                    if (cookie.indexOf(cookieName) === 0) {
+                        return cookie.substring(cookieName.length, cookie.length);
+                    }
+                }
+                return null;
+            }
+
+            // Function to get the current date and time
+            function getCurrentDatetime() {
+                const now = new Date();
+                const options = { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" };
+                return now.toLocaleDateString(undefined, options);
+            }
+        });
+    </script>
+</body>
+</html>
